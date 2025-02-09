@@ -1,0 +1,26 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"extensions": {
+		"recommendations": [
+			"ms-vscode.powershell",
+			"davidanson.vscode-markdownlint",
+			"bierner.markdown-preview-github-styles"
+		]
+	},
+	"settings": {
+		"files.trimTrailingWhitespace": true,
+		"files.trimFinalNewlines": true,
+		"cSpell.customDictionaries": {
+			"custom-dictionary-workspace": {
+				"name": "custom-dictionary-workspace",
+				"path": "${workspaceFolder:ms-partner-center-executive-reports-role}/.cspell/custom-dictionary-workspace.txt",
+				"addWords": true,
+				"scope": "workspace"
+			}
+		}
+	}
+}

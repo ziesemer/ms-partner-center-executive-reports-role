@@ -1,0 +1,5 @@
+.*
+!/.cspell/
+!.gitattributes
+!.gitignore
+!.markdownlint.json
