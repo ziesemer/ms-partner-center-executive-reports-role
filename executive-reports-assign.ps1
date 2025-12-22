@@ -1,4 +1,4 @@
-# Mark A. Ziesemer, www.ziesemer.com - 2025-01-19, 2025-02-09
+# Mark A. Ziesemer, www.ziesemer.com - 2025-01-19, 2025-12-21
 
 #Requires -Version 5.1
 
@@ -119,9 +119,9 @@ function Get-ERAUser($token, $userId){
 	$resp = Invoke-WebRequest -Uri ('https://graph.microsoft.com/v1.0/users/' `
 			+ $userId) `
 		-Headers @{
-		'Authorization' = 'Bearer ' + $token.access_token
-		'Accept' = 'application/json'
-	}
+			'Authorization' = 'Bearer ' + $token.access_token
+			'Accept' = 'application/json'
+		}
 	Convert-PCFixEncoding $resp.Content
 }
 
@@ -132,10 +132,60 @@ function Get-ERARoles{
 	)
 	# - https://learn.microsoft.com/en-us/rest/api/partner-center/manage-account-profiles/get-all-available-roles
 	$resp = Invoke-WebRequest -Uri 'https://api.partnercenter.microsoft.com/v1/roles' `
-	-Headers @{
-		'Authorization' = 'Bearer ' + $token.access_token
-		'Accept' = 'application/json'
+		-Headers @{
+			'Authorization' = 'Bearer ' + $token.access_token
+			'Accept' = 'application/json'
+		}
+	Convert-PCFixEncoding $resp.Content
+}
+
+function Get-ERARoleMember{
+	Param(
+		$token, $role
+	)
+	# TODO: Implement paging - though available documentation on this is not exactly clear how to do so.
+	# - https://learn.microsoft.com/en-us/rest/api/partner-center/manage-account-profiles/get-user-members-by-role
+	$resp = Invoke-WebRequest -Uri ('https://api.partnercenter.microsoft.com/v1/roles/' `
+			+ $role.id `
+			+ '/usermembers') `
+		-Headers @{
+			'Authorization' = 'Bearer ' + $token.access_token
+			'Content-Type' = 'application/json'
+			'Accept' = 'application/json'
+		} `
+		-Method Get
+	Convert-PCFixEncoding $resp.Content
+}
+
+function Remove-ERARoleMember{
+	[CmdletBinding(SupportsShouldProcess)]
+	Param(
+		$token, $role, $user
+	)
+	if(!$PSCmdlet.ShouldProcess($user.userPrincipalName)){
+		return
 	}
+	# - https://learn.microsoft.com/en-us/rest/api/partner-center/manage-account-profiles/delete-user-member-from-role
+	# As of 2025-12-21, this is failing with:
+	# 	{
+	# 	  "code": 2000,
+	# 	  "description": "Account Id has to be set.",
+	# 	  "data": [],
+	# 	  "source": "PartnerFD"
+	# 	}
+	# ... even though there is no mention of "account" is listed in the above-documented API.
+	# Looks like the Partner Center web UI instead issues a PATCH request through the otherwise internal and undocumented:
+	# - https://partner.microsoft.com/en-us/dashboard/account/v3/api/authv2/user/...
+	$resp = Invoke-WebRequest -Uri ('https://api.partnercenter.microsoft.com/v1/roles/' `
+			+ $role.id `
+			+ '/usermembers/' `
+			+ $user.id) `
+		-Headers @{
+			'Authorization' = 'Bearer ' + $token.access_token
+			'Content-Type' = 'application/json'
+			'Accept' = 'application/json'
+		} `
+		-Method Delete
 	Convert-PCFixEncoding $resp.Content
 }
 
@@ -149,21 +199,21 @@ function Set-ERARoleMember{
 	}
 	# - https://learn.microsoft.com/en-us/rest/api/partner-center/manage-account-profiles/add-new-user-member-to-role
 	$resp = Invoke-WebRequest -Uri ('https://api.partnercenter.microsoft.com/v1/roles/' `
-		+ $role.id `
-		+ '/usermembers') `
-	-Headers @{
-		'Authorization' = 'Bearer ' + $token.access_token
-		'Content-Type' = 'application/json'
-		'Accept' = 'application/json'
-	} `
-	-Method Post `
-	-Body (@{
-		'accountId' = $tenantId
-		'displayName' = $user.displayName
-		'id' = $user.id
-		'roleId' = $role.id
-		'userPrincipalName' = $user.userPrincipalName
-	} | ConvertTo-Json)
+			+ $role.id `
+			+ '/usermembers') `
+		-Headers @{
+			'Authorization' = 'Bearer ' + $token.access_token
+			'Content-Type' = 'application/json'
+			'Accept' = 'application/json'
+		} `
+		-Method Post `
+		-Body (@{
+			'accountId' = $tenantId
+			'displayName' = $user.displayName
+			'id' = $user.id
+			'roleId' = $role.id
+			'userPrincipalName' = $user.userPrincipalName
+		} | ConvertTo-Json)
 	Convert-PCFixEncoding $resp.Content
 }
 
@@ -189,13 +239,30 @@ $pcRoles = Get-ERARoles $token
 $ervRole = $pcRoles.items | Where-Object{$_.name -eq 'Executive Report Viewer'}
 Write-Log ('Found role: ' + ($ervRole | ConvertTo-Json -Compress))
 
+$ervMembers = Get-ERARoleMember $token $ervRole
+Write-Log ('Found role members: ' + ($ervMembers | ConvertTo-Json -Compress -Depth 4))
+
+$rvRole = $pcRoles.items | Where-Object{$_.name -eq 'Report Viewer'}
+Write-Log ('Found role: ' + ($rvRole | ConvertTo-Json -Compress))
+
+$rvMembers = Get-ERARoleMember $token $rvRole
+Write-Log ('Found role members: ' + ($rvMembers | ConvertTo-Json -Compress -Depth 4))
+
 foreach($uid in $userId){
 	Write-Log ('Getting user details: ' + $uid)
 	$user = Get-ERAUser $userReadToken $uid
 
-	Write-Log 'Setting role ...'
+	if($uid -in $rvMembers.items.id){
+		Write-Log '  - User already also in "Report Viewer" role, removing...'
+		# $setRoleResp = Remove-ERARoleMember $token -role $ervRole -user $user
+		# Write-Log ('  - Role response: ' + ($setRoleResp | ConvertTo-Json -Compress))
+		Write-Log -Severity WARN '  Delete API is not working per documented specification, user must be removed from role manually.'
+		Write-Log -Severity WARN '  Remove all Report Viewer-related roles from the Partner Center web UI, and reattempt.'
+	}
+
+	Write-Log '  - Adding "Executive Report Viewer" role ...'
 	$setRoleResp = Set-ERARoleMember $token -role $ervRole -user $user
-	Write-Log ('Role response: ' + ($setRoleResp | ConvertTo-Json -Compress))
+	Write-Log ('  - Role response: ' + ($setRoleResp | ConvertTo-Json -Compress))
 }
 
 Write-Log 'Done!'

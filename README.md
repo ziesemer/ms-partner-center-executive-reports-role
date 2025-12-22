@@ -47,10 +47,23 @@ These roles are also documented under:
 * "Account settings" / "Manage users" / "[Assign roles, permissions, and workspace access](https://learn.microsoft.com/en-us/partner-center/account-settings/permissions-overview)", under the "[Executive report viewer role](https://learn.microsoft.com/en-us/partner-center/account-settings/permissions-overview#executive-report-viewer-role)" section.
 * "Insights" / "Cloud product performance insights" / "Cloud product performance report details" / "[CPP Summary](https://learn.microsoft.com/en-us/partner-center/insights/insights-overview-report)".
 
-### Support Ticket
+### Support Tickets
 
-A Partner Center support ticket, # [2501160040016582](https://partner.microsoft.com/dashboard/v2/support/servicerequests/activity?tid=2501160040016582), was opened with Microsoft on 2025-01-16.
+1. A Partner Center support ticket, # [2501160040016582](https://partner.microsoft.com/dashboard/v2/support/servicerequests/activity?tid=2501160040016582), was opened with Microsoft on 2025-01-16.
 It was closed without resolution after working through the issue ourselves - directly through the Partner Center APIs, and bypassing the Partner Center web pages - as further documented here.
+
+2. Another Partner Center support ticket, # [2512040040010184](https://partner.microsoft.com/dashboard/v2/support/servicerequests/activity?tid=2512040040010184), was opened with Microsoft on 2025-12-04.  This was opened to address a user where the "Executive Report Viewer" role was previously working as expected, but then reverted to limited permissions - presumably the same as "Report Viewer".
+	1. Recent investigation showed that the user apparently became a member of both roles ("Executive Report Viewer" and "Report Viewer").
+	2. In attempting to automate the removal from the potentially-conflicting "Report Viewer", the ["delete user member from role"](https://learn.microsoft.com/en-us/rest/api/partner-center/manage-account-profiles/delete-user-member-from-role) API is failing with the following error - even though there is no mention of "account" listed in the linked documented API:
+
+	```json
+			{
+				"code": 2000,
+				"description": "Account Id has to be set.",
+				"data": [],
+				"source": "PartnerFD"
+			}
+	```
 
 ## Execution
 
