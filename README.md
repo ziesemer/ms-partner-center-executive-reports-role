@@ -2,6 +2,13 @@
 
 ## Summary
 
+> [!NOTE]
+>
+> As of sometime in the week leading up to 2026-02-01, at least my organization's Partner Center has been updated to consistently show an available selection of "Report viewer", "Executive report viewer", or "No permission" across both the available "Entire organization" or per-location selections.
+>
+> While this now hopefully removes what was a necessity for this script, it may still be helpful for continued automation.
+> However, it remains untested with the latest changes in Partner Center, and the many other issues, bugs, authentication challenges, and asides referenced below remain.
+
 Provides a fix for Microsoft commercial partners and CSP resellers enrolled into the Microsoft AI Cloud Partner Program to allow user assignments into the otherwise missing "Executive report viewer" role in Partner Center.
 A script is provided to hopefully make a quick fix accessible to other partners facing the same issue.
 
